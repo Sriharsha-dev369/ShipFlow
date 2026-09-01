@@ -238,6 +238,7 @@ Promote-then-demote fails: at the first statement there would momentarily be two
 | Transfer ownership | Two role updates that transiently violate an invariant between them |
 | Change password | Update hash + revoke all refresh tokens — otherwise old sessions survive a password change |
 | Delete project | Soft-delete project + cascade soft-delete its issues |
+| Delete organization | Soft-delete the org + soft-delete every project in it (which cascades to their issues) + hard-delete its `OrganizationMember` and pending `Invitation` rows — all in one transaction, so no half-deleted org is ever visible |
 
 Everything else is a single statement and needs no explicit transaction.
 
@@ -248,6 +249,7 @@ Everything else is a single statement and needs no explicit transaction.
 | Entity | Strategy | Why |
 |---|---|---|
 | Organization, Project, Issue | Soft delete (`deleted_at`) | AuditLog references them by id after deletion; hard-deleting breaks the history that audit exists to provide |
+| OrganizationMember, Invitation (on org deletion) | Hard delete, cascaded from the org | Meaningless without a live organization; unlike Project/Issue, nothing references a membership row by id afterward, so there's no audit reason to keep them |
 | File | Soft delete metadata; object left in storage | Storage reclamation deferred — accepted cost, see ADR-0010 |
 | Comment | Hard delete | Nothing references it afterward |
 | Invitation (revoked) | Hard delete | Disposable |

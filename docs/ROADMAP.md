@@ -20,7 +20,7 @@ Not:
 all schemas ──► all APIs ──► all frontend ──► tests ──► deploy      ✗
 ```
 
-Three things are **properties of every slice**, never deferred to a later one: input validation, authorisation checks, and the tests that verify them. Only genuinely global work — an E2E suite, index tuning against real query patterns, a security review, load testing — waits for Slice 9.
+Four things are **properties of every slice**, never deferred to a later one: input validation, authorisation checks, the tests that verify them, and **Swagger decorators on every new endpoint in the same PR that adds it** (the module is wired up in Slice 0; documenting it isn't a separate ticket, it's a line item on every ticket that adds a route — the same way "add a test" isn't a ticket of its own). Only genuinely global work — an E2E suite, index tuning against real query patterns, a security review, load testing — waits for Slice 9.
 
 ---
 
@@ -136,6 +136,7 @@ Sentry · request/error logging with `requestId` correlation · uptime monitorin
 - [ ] Works end to end against real infrastructure, not mocks
 - [ ] Deployed and working on the live URL (from Slice 1 onward)
 - [ ] Validation and authorisation implemented **and tested**
+- [ ] Every new endpoint has Swagger decorators — `/api/docs` reflects reality, not a stale snapshot
 - [ ] `lint` + `typecheck` + tests green in CI
 - [ ] Conventional commits, one PR, merged to `main`
 - [ ] Any hard-to-reverse, non-obvious decision recorded as an ADR

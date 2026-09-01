@@ -68,6 +68,8 @@ Offset pagination drifts when rows are inserted or deleted mid-scroll — a user
 
 **Versioning**: none. There are no external consumers; the web app ships with the API. Introducing `/v1/` before anyone depends on it is ceremony.
 
+**Idempotency.** A network retry double-submitting a `POST` is the real risk this addresses — not a theoretical one, since TanStack Query and mobile networks both retry. Where it's already handled structurally, no extra work is needed: registration and invitation-accept are protected by unique constraints on email; invitation creation is protected by the pending-invite unique constraint. Where it isn't — `POST` on issues and comments — a duplicate is low-consequence (the user sees two cards, deletes one) and not worth an `Idempotency-Key` header and a dedup-table for this product's scale. **This is a deliberate scope cut, not an oversight**: revisit it if a real duplicate-submission bug ever shows up, rather than building the mechanism speculatively.
+
 ---
 
 ## 2. Endpoint map
