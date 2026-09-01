@@ -22,8 +22,11 @@ A container for Issues, belonging to exactly one Organization. Every Organizatio
 _Avoid_: Board, Workspace
 
 **Issue**:
-A unit of trackable work belonging to exactly one Project. Has a Status drawn from a fixed, global set (not configurable per-project), and at most one assignee.
+A unit of trackable work belonging to exactly one Project. Has a Status drawn from a fixed, global set (not configurable per-project), a Priority, and at most one assignee. Identified to people by a per-project sequential number, e.g. `WEB-42`.
 _Avoid_: Task, Ticket (pick Issue and use it consistently)
+
+**Priority**:
+How urgent an Issue is (LOW, MEDIUM, HIGH, URGENT). A judgement the team sets by hand; nothing in the system derives or escalates it.
 
 **IssueStatus**:
 The fixed, global lifecycle state of an Issue (e.g. Todo, In Progress, In Review, Done). Not a per-project customizable workflow.

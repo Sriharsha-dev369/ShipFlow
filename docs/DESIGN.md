@@ -122,12 +122,13 @@ Two places need explicit thought, not just "wrap it in a transaction":
 | Invite/remove members, change roles | ✅ | ✅ | ❌ |
 | Transfer ownership | ✅ (source) | ❌ | ❌ |
 | Create/delete Project | ✅ | ✅ | Create only |
-| Create/edit/assign Issue | ✅ | ✅ | ✅ |
-| Delete Issue | ✅ | ✅ | own-reported only *(assumption — flag if wrong)* |
+| Rename Project / Organization (settings) | ✅ | ✅ | ❌ |
+| Leave Organization voluntarily | ❌ (must transfer ownership first) | ✅ | ✅ |
+| Create/edit/assign/delete Issue | ✅ | ✅ | ✅ |
 | Comment CRUD (own) | ✅ | ✅ | ✅ |
 | Delete others' Comment | ✅ | ✅ | ❌ |
 
-The "MEMBER delete Issue" row is my own call, not something we explicitly grilled — flagging it so you can override before Phase 5.
+Issue delete is not restricted to the reporter — MEMBER already has full edit/assign rights on any issue, so a delete-only carve-out would be an inconsistent special case.
 
 ## 8. Multi-tenancy strategy
 
@@ -207,6 +208,7 @@ Real Postgres for integration tests, scoped Playwright E2E (ADR-0014). Priority 
 | Input validation | class-validator DTOs on every endpoint; reject unknown fields |
 | Rate limiting | IP-keyed on pre-auth routes, user-keyed on authenticated routes (§ Q19), Redis-backed |
 | CORS | Allowlist the deployed frontend origin only |
+| CSRF | The refresh token is the only cookie-based credential; it's scoped to the refresh endpoint path and set `SameSite=Lax` (or stricter), so it can't be triggered cross-site. The access token travels in an `Authorization` header, never a cookie, so it carries no CSRF exposure at all |
 | File upload abuse | Size cap, MIME allowlist, signed URLs scoped to one object |
 | Secrets | Environment variables only, never committed; documented in `.env.example` |
 | Error leakage | Global exception filter strips stack traces / internal messages in production responses; full detail goes to Sentry, not the client |
@@ -288,4 +290,6 @@ Each phase ends in a working, deployed-if-relevant state before the next starts,
 
 ## 23. Open questions requiring approval
 
-None outstanding — all four grilling rounds are closed. Two spots worth a second look before their phase starts: the "MEMBER can only delete own-reported issues" call in §7, and whether Comment should be soft- rather than hard-deleted (currently hard-delete, §6) — both are my calls, not yours, flagged for override.
+None outstanding. Both items previously flagged here are now resolved: MEMBER can delete any issue, not just ones they reported (§7); Comment stays hard-delete, confirmed final (§6).
+
+**Post-publish correction**: a pass against the *original* project spec (not just this document) turned up two real gaps the ticket breakdown had silently dropped — organization/project settings pages and an account-settings feature (both explicitly requested in the original spec), plus a missing CSRF mitigation on the refresh-token cookie flow (also explicitly flagged in the original spec's Security section). Fixed: settings folded into tickets #3 and #6, CSRF added to #2, and a new ticket #17 (Account settings) created, blocked by #2. This is the reminder to re-check the finished ticket set against the *original* requirements list before treating scope as settled, not just against what got discussed in the grilling rounds.
