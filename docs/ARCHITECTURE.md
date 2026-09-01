@@ -179,3 +179,39 @@ What happens when each dependency is unavailable:
 | **Sentry / mailer** | Invisible to users. Never block a request on telemetry |
 
 The pattern: **only Postgres is allowed to take the product down.** Every other dependency degrades a feature.
+
+---
+
+## 9. Observability
+
+The bar is one question: **"what would I need to diagnose this at 2am?"** — not "how much telemetry can we emit?"
+
+| Layer | What we have | Arrives |
+|---|---|---|
+| **Structured logs** | JSON via pino. Every request logs method, path, status, duration, `userId`, `orgId`, and a `requestId` | Slice 0 |
+| **Request correlation** | The same `requestId` appears in the log line, the error response, and the Sentry event — so a user's bug report is traceable to a single request | Slice 0 / 10 |
+| **Liveness** | `GET /health` — 200 whenever the process is alive. Deliberately does **not** check dependencies: a liveness probe that fails on a database blip makes the platform kill a healthy process and turns a hiccup into an outage | Slice 0 |
+| **Readiness** | `GET /health/ready` — checks Postgres and Redis, returns 503 when either is down | Slice 0 |
+| **Error tracking** | Sentry on API, worker, and web. Stack traces go here, never to the client | Slice 10 |
+| **Job visibility** | Failed jobs remain inspectable in the queue's failed set rather than vanishing | Slice 6 |
+| **Uptime monitoring** | External check against `/health/ready` | Slice 10 |
+
+Deliberately absent: metrics, tracing, dashboards. See §10.
+
+---
+
+## 10. Deliberate simplicity — where *not* to add architecture
+
+Places this project will feel pressure to grow architecture it doesn't need. Naming them here so the pressure gets recognised rather than obeyed.
+
+| Temptation | Why not | What would actually justify it |
+|---|---|---|
+| **A permissions framework** (CASL and similar) | Three roles and one guard do not strain a hand-rolled implementation. A policy engine adds indirection between a rule and its enforcement, which is the opposite of what authorisation code needs | Roles becoming resource-scoped or user-definable |
+| **Pub/sub fan-out for notifications** | There are two notification types, both with one recipient. An event bus to decouple modules that all run in the same process is architecture for its own sake | Notifications fanning out to many watchers, or a second consumer of the same events |
+| **A metrics/tracing stack** (Prometheus, Grafana, OpenTelemetry) | Structured logs + Sentry + health checks answer the 2am question at this scale. A dashboard nobody looks at is a maintenance burden wearing a costume | Enough traffic that aggregate behaviour differs from individual requests |
+| **Elasticsearch** | Postgres full-text search handles hundreds of issues per project with ranking (ADR-0009). A second datastore means a sync problem, forever | Search across millions of rows, or relevance tuning Postgres can't express |
+| **A repository layer over Prisma** | Prisma *is* the repository. Wrapping it adds a hop without adding a seam we test against | Needing to swap the ORM, or genuinely needing to fake persistence in tests — we use a real database instead |
+| **Microservices** | Module boundaries inside one process give the same separation with none of the operational cost, at 3–15 users per org | Independent scaling or deploy cadence per module — neither of which exists here |
+| **Caching more than membership** | Every other read has no articulated staleness tolerance. Caching data users expect to be current trades correctness for a saving we haven't measured | A measured hot path, with an explicit answer for how stale is acceptable |
+
+The rule: **add the architecture when the pain is real and measured, not when the pattern is familiar.** Every row above is a decision that can be revisited with evidence — and none of them should be revisited without it.
